@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+
+sudo rsync -avh --progress /home/dmrauh/ /mnt/backup --delete
