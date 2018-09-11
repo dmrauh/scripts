@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+APROFILE=$(autorandr --current)
+
+case $APROFILE in
+"docked")
+	PMONITOR="DP1"
+	;;
+"mobile")
+	PMONITOR="eDP1"
+	;;
+*)
+	echo "No valid autorandr profile detected!" 1>&2
+	exit 1
+	;;
+esac
+
+sed -i "21s/.*/monitor = $PMONITOR/" ~/.config/polybar/config
+
+# Launch polybar
+if ! pgrep polybar > /dev/null
+then
+	echo "Starting polybar in $APROFILE configuration ..."
+	polybar --reload top &
+else
+	echo "Reloading polybar in $APROFILE configuration ..."
+fi

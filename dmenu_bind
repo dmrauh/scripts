@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+. ~/.dmenurc
+dmenu_run $DMENU_OPTIONS

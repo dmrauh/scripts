@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+mu index -m ~/.mail/unia
+mu index -m ~/.mail/posteo
