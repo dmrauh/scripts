@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+texname=${@: -1}                                                        
+texname=${texname::-4}
+shopt -s extglob
+rm -- !($texname.pdf|$texname.tex)
+mkdir -p out
+mv $texname.pdf out
