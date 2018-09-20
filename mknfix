@@ -1,0 +1,6 @@
+m!/usr/bin/env bash 
+
+latexmk $@
+texname=${@: -1}
+texname=${texname::-4}
+fixfonts $texname.pdf
