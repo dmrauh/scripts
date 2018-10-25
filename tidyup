@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 
-texname=${@: -1}                                                        
-texname=${texname::-4}
+filename=$(basename -- "$@")
+extension="${filename##*.}"
+name="${filename%.*}"
+
+if [ ! -e "$filename" ] || [ "$extension" != "tex" ]
+then exit 1
+fi
+
 shopt -s extglob
+
 rm -rf !(*.pdf|*.tex|out)
 mkdir -p out
-mv $texname.pdf out
+mv "$name.pdf" out
