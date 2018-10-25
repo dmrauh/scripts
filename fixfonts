@@ -1,6 +1,5 @@
 #!/usr/bin/env fish
 
-
 function fixfonts
     for f in $argv
         set tmp (mktemp)
