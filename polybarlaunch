@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-APROFILE=$(autorandr --current)
+APROFILE=$(autorandr --detected)
 
 case $APROFILE in
 "docked")
@@ -8,6 +8,12 @@ case $APROFILE in
 	;;
 "mobile")
 	PMONITOR="eDP1"
+	;;
+"n1058")
+	PMONITOR="eDP1"
+	;;
+"conference")
+	PMONITOR="HDMI1"
 	;;
 *)
 	echo "No valid autorandr profile detected!" 1>&2
