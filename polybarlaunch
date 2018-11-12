@@ -21,9 +21,10 @@ case $APROFILE in
 	;;
 esac
 
-sed -i "21s/.*/monitor = $PMONITOR/" ~/.config/polybar/config
+sed -i "21s/.*/monitor = $PMONITOR/" ~/.dotfiles/polybar/.config/polybar/config
 
 # Launch polybar
+
 if ! pgrep polybar > /dev/null
 then
 	echo "Starting polybar in $APROFILE configuration ..."
