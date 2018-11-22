@@ -10,6 +10,6 @@ fi
 
 shopt -s extglob
 
-rm -rf !(*.pdf|*.tex|out)
+rm -rf !(*.pdf|*.tex|*.bib|out|img)
 mkdir -p out
 mv "$name.pdf" out

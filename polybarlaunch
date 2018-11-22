@@ -10,7 +10,7 @@ case $APROFILE in
 	PMONITOR="eDP1"
 	;;
 "n1058")
-	PMONITOR="eDP1"
+	PMONITOR="HDMI1"
 	;;
 "conference")
 	PMONITOR="HDMI1"

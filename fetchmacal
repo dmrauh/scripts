@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+mailman > /dev/null 2>&1
+vdirsyncer sync 2> /dev/null
