@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+. ~/.dmenurc
+passmenu -fn "$DMENU_FN" -nb "$DMENU_NB" -nf "$DMENU_NF" -sf "$DMENU_SF" -sb "$DMENU_SB"
+
+
