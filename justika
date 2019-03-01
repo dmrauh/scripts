@@ -1,0 +1,61 @@
+#!/usr/bin/env fish
+#
+# Required: curl, pdftotext (from poppler-utils), cat, grep, sed
+
+
+set dir "$HOME/.justika/"
+mkdir "$dir" 2> /dev/null
+
+
+set name "$dir/"(date +%V)
+set pdf "$name".pdf
+set txt "$name".txt
+
+
+if test ! -f "$pdf"
+    curl --silent --output "$pdf" http://justika.de/Speisekarten/Justika_Wochenkarte_aktuell.pdf
+end
+
+
+if file "$pdf" | grep PDF > /dev/null
+
+
+    pdftotext "$pdf" "$txt"
+
+
+    set days '(Montag|Dienstag|Mittwoch|Donnerstag|Freitag|Samstag|Sonntag)'
+
+
+    cat "$txt" \
+    # discard heading
+    | grep -v 'Kalenderwoche' \
+    # discard footer
+    | sed -rn '/Täglich wechselnde Suppe/q;p' \
+    # discard ingredients footnotes and prices
+    | sed -r "/$days/n;s/([[:digit:]],?)+( €)?//g" \
+    # enclose OPTIMAHL in brackets
+    | sed -r "s/\"(OPTIMAHL)\"/(\1™)/" \
+    # discard empty lines
+    | grep -v '^ *$' \
+    # if OPTIMAHL is on its own line, move it up to the previous line
+    | tr '\n' '#' \
+    | sed -r "s/#(\(OPTIMAHL[^#]*#)/ \1/g" \
+    | tr '#' '\n' \
+    # add bullet points
+    | sed -r "/$days/n;s/^/• /"
+
+
+    if test "$argv" = "--pdfinfo" -o "$argv" = "-i"
+        pdfinfo "$pdf"
+    end
+
+else
+
+
+    echo "PDF file could not be downloaded"
+
+
+end
+
+rm -r "$dir"
+
