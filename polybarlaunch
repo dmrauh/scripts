@@ -4,16 +4,16 @@ APROFILE=$(autorandr --detected)
 
 case $APROFILE in
 "docked")
-	PMONITOR="DP-1"
+	PMONITOR="DP1"
 	;;
 "mobile")
-	PMONITOR="eDP-1"
+	PMONITOR="eDP1"
 	;;
 "n1058")
-	PMONITOR="HDMI-1"
+	PMONITOR="HDMI1"
 	;;
 "conference")
-	PMONITOR="HDMI-1"
+	PMONITOR="HDMI1"
 	;;
 *)
 	echo "No valid autorandr profile detected!" 1>&2
