@@ -10,6 +10,8 @@ fi
 
 shopt -s extglob
 
-rm -rf $name.aux $name.fdb_latexmk $name.fls $name.log $name.nav $name.out $name.snm $name.synctex.gz $name.toc $name.vrb $name.bcf $name.blg $name.bbl
+rm -rf $name.aux $name.fdb_latexmk $name.fls $name.log $name.nav $name.out\
+	$name.snm $name.synctex.gz $name.toc $name.vrb $name.bcf $name.blg\
+	$name.bbl $name.upa $name.upb $name.synctex $name.xdv $name.run.xml
 mkdir -p out
 mv "$name.pdf" out
