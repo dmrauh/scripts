@@ -1,38 +1,56 @@
 #! /usr/bin/env nix-shell
 #! nix-shell -i python -p python36
 
+import datetime
 import os
 import re
-import datetime
+
 
 def extract_days(file):
-    m = re.search('_([0-9]+[0-9]*)Tag', file) 
+    m = re.search(FILE_REGEX, file)
     if m:
         return int(m.group(1))
     else:
         return 0
 
+
 def extract_vacation_per_year(year, vacation_dir):
-    year_dir = os.path.join(vacation_dir, year) 
-    vacation_files = [dI for dI in os.listdir(year_dir) if os.path.isfile(os.path.join(year_dir, dI))]
+    year_dir = os.path.join(vacation_dir, year)
+    vacation_files = [
+        f for f in os.listdir(year_dir)
+        if os.path.isfile(os.path.join(year_dir, f))
+    ]
     days = 0
     for vacation_file in vacation_files:
         days += extract_days(vacation_file)
     return days
 
-vacation_dir = '.'
 
-years = [dI for dI in os.listdir(vacation_dir) if os.path.isdir(os.path.join(vacation_dir, dI))]
-employment_start = 2016
-start_malus = 17
-vacation_per_year = 30
-current_year = datetime.datetime.now().year
+VACATION_DIR = '.'
+FILE_REGEX = '_([0-9]+[0-9]*)Tag'
+EMPLOYMENT_START = 2016
+START_MALUS = 17
+VACATION_PER_YEAR = 30
+CURRENT_YEAR = datetime.datetime.now().year
+
+years = [
+    d for d in os.listdir(VACATION_DIR)
+    if os.path.isdir(os.path.join(VACATION_DIR, d))
+]
+
 taken_vacation = 0
 for year in years:
-    taken_vacation += extract_vacation_per_year(year, vacation_dir)
+    taken_vacation += extract_vacation_per_year(year, VACATION_DIR)
 
-guaranteed_vacation = (current_year - employment_start + 1) * vacation_per_year
-guaranteed_vacation -= start_malus
-remaining_vacation =  guaranteed_vacation - taken_vacation
-print(f'{remaining_vacation} day(s) of vacation are left.')
+guaranteed_vacation = (CURRENT_YEAR - EMPLOYMENT_START + 1) * VACATION_PER_YEAR
+guaranteed_vacation -= START_MALUS
+remaining_vacation = guaranteed_vacation - taken_vacation
+
+day_literal = 'day'
+is_literal = 'is'
+if remaining_vacation > 1:
+    day_literal += 's'
+    is_literal = 'are'
+
+print(f'{remaining_vacation} {day_literal} of vacation {is_literal} left.')
 
