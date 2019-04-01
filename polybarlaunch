@@ -23,12 +23,7 @@ esac
 
 sed -i "21s/.*/monitor = $PMONITOR/" ~/.dotfiles/polybar/.config/polybar/config
 
-# Launch polybar
+# make sure to restart polybar
+pkill polybar
+polybar --reload top &
 
-if ! pgrep polybar > /dev/null
-then
-	echo "Starting polybar in $APROFILE configuration ..."
-	polybar --reload top &
-else
-	echo "Reloading polybar in $APROFILE configuration ..."
-fi
