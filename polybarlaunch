@@ -25,5 +25,5 @@ sed -i "21s/.*/monitor = $PMONITOR/" ~/.dotfiles/polybar/.config/polybar/config
 
 # make sure to restart polybar
 pkill polybar
-polybar --reload top &
+polybar top &
 
