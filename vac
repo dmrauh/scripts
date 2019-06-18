@@ -1,5 +1,5 @@
 #! /usr/bin/env nix-shell
-#! nix-shell -i python -p python36
+#! nix-shell -i python -p python37
 
 import datetime
 import os
