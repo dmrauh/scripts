@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 
-APROFILE=$(autorandr --detected)
+DEFAULT="eDP1"
+APROFILE=$(autorandr --current)
 
 case $APROFILE in
 "docked")
 	PMONITOR="DP1"
 	;;
 "mobile")
-	PMONITOR="eDP1"
+	PMONITOR=$DEFAULT
 	;;
 "n1058")
 	PMONITOR="HDMI1"
@@ -17,6 +18,7 @@ case $APROFILE in
 	;;
 *)
 	echo "No valid autorandr profile detected!" 1>&2
+	echo "Falling back to monitor $DEFAULT …" 1>&2
 	exit 1
 	;;
 esac
