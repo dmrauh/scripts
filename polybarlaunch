@@ -18,11 +18,12 @@ case $APROFILE in
 	;;
 *)
 	echo "No valid autorandr profile detected!" 1>&2
-	echo "Falling back to monitor $DEFAULT …" 1>&2
+	echo "Falling back to monitor “$DEFAULT” …" 1>&2
 	exit 1
 	;;
 esac
 
+echo "Detected profile “$APROFILE”"
 sed -i "21s/.*/monitor = $PMONITOR/" ~/.dotfiles/polybar/.config/polybar/config
 
 # make sure to restart polybar
