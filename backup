@@ -1,3 +1,6 @@
 #!/usr/bin/env sh
 
-sudo rsync -avh --delete --info=progress2 --include=".dotfiles" --exclude=".*"  /home/dmrauh/ /mnt/backup
+sudo rsync -avh --delete --info=progress2 \
+--include=".dotfiles" \
+--exclude="/.*" \
+/home/dmrauh/ /mnt/backup
