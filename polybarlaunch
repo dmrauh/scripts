@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 DEFAULT="eDP1"
-APROFILE=$(autorandr --current)
+APROFILE=$(autorandr --detected)
 
 case $APROFILE in
 "docked")
