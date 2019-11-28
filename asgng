@@ -1,0 +1,52 @@
+#! /usr/bin/env nix-shell
+#! nix-shell -i python -p "python3.withPackages (ps: [ps.click])"
+
+import random as rnd
+import click as cl
+import collections as col
+import pprint as pp
+import typing as ty
+
+
+def load_groups(path: str) -> ty.List[str]:
+    with open(path) as file:
+        content = file.readlines()
+
+    content = [line.strip() for line in content]
+    content = list(filter(None, content))
+    return content
+
+
+def assign_groups(groups: ty.List[str]) -> ty.Mapping[int, str]:
+    group_number = len(groups)
+    group_order = list(range(1, group_number))
+    rnd.shuffle(group_order)
+    return col.OrderedDict(sorted(zip(group_order, groups)))
+
+
+def write_assigned_groups(path: str, assignment: ty.Mapping[int, str]) -> None:
+    with open(path, 'w') as file:
+        file.write(''.join([f'{k} {v}\n' for (k, v) in assignment.items()]))
+        file.write('\n')
+
+
+@cl.command()
+@cl.argument('groups', type=cl.Path(), required=True, nargs=1)
+@cl.option('--dry-run',
+           is_flag=True,
+           help='Create random group order but write to stdout instead of file.')
+@cl.version_option('1.0.0')
+@cl.pass_context
+def main(ctx: cl.Context, groups: str, dry_run: bool) -> None:
+    unassigned_groups = load_groups(groups)
+    assigned_groups = assign_groups(unassigned_groups)
+
+    if dry_run:
+        pp.pprint(assigned_groups)
+        ctx.exit()
+    else:
+        write_assigned_groups(groups, assigned_groups)
+
+
+if __name__ == '__main__':
+    main()
