@@ -1,6 +1,22 @@
-#!/usr/bin/env sh
+#!/usr/bin/env fish
 
-sudo rsync -avh --delete --info=progress2 \
---include=".dotfiles" \
---exclude="/.*" \
-/home/dmrauh/ /mnt/backup
+
+function bupit
+    set -l dir "$argv"
+
+
+    if test -d "$dir"
+        set -x BUP_DIR "$dir"/(hostname)
+
+
+        bup init
+        and bup index "/home/$USER"
+        and bup save -n (hostname)-home-"$USER" "/home/$USER"
+        and bup fsck -g
+    else
+        echo "Not available: $dir"
+    end
+end
+
+
+bupit $argv
