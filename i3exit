@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 # /usr/bin/i3exit
 
 # with openrc use loginctl
@@ -15,10 +15,10 @@ case "$1" in
         dm-tool switch-to-greeter
         ;;
     suspend)
-        blurlock && $logind suspend
+        $logind suspend
         ;;
     hibernate)
-        blurlock && $logind hibernate
+        $logind hibernate
         ;;
     reboot)
         $logind reboot
