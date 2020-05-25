@@ -1,0 +1,42 @@
+#!/usr/bin/env fish
+
+function compile_document
+    set -l name (basename "$argv[2]")
+    set -l name (echo $name | sed 's/\.[^.]*$//')
+    set -l extension ".pdf"
+    set -l pdf "$name$extension"
+
+    ls "$argv[2]" |\
+    entr -cs \
+    "latexmk $argv[1] -f -interaction=nonstopmode $argv[2]\
+    && fixfonts $pdf && tidyup $argv[2]"
+end
+
+set -l arg_count (count $argv)
+
+if test $arg_count -eq 1
+    set -l extension_matches (string match "*.tex" "$argv[1]")
+    test (count $extension_matches) -gt 0
+    set -l is_tex $status
+
+    if test $is_tex -eq 0
+        compile_document "-xelatex" "$argv[1]"
+    else
+        exit 1
+    end
+else if test $arg_count -eq 2
+    test "$argv[1]" = "-pdf" -o "$argv[1]" = "-xelatex"
+    set -l engine_matches $status
+
+    set -l extension_matches (string match "*.tex" "$argv[2]")
+    test (count $extension_matches) -gt 0
+    set -l is_tex $status
+
+    if test \( $engine_matches -eq 0 \) -a \( $is_tex -eq 0 \)
+        compile_document "$argv[1]" "$argv[2]"
+    else
+        exit 1
+    end
+else
+    exit 1
+end
