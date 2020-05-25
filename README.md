@@ -1,5 +1,5 @@
-bin
-===
+scripts
+=======
 
-This is my collection of various excutable scripts, that i use on a
-daily basis.
+A collection of various executable scripts, that I use on a daily basis.
+
