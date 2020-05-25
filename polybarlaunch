@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
 DEFAULT="eDP1"
-APROFILE=$(autorandr --detected)
+APROFILE=$(autorandr --current)
+
+if [ -z "$APROFILE" ]
+then
+    APROFILE=$(autorandr --detected)
+fi
 
 case $APROFILE in
 "docked")
@@ -16,6 +21,9 @@ case $APROFILE in
 "conference")
 	PMONITOR="HDMI1"
 	;;
+"home")
+    PMONITOR="HDMI1"
+    ;;
 *)
 	echo "No valid autorandr profile detected!" 1>&2
 	echo "Falling back to monitor “$DEFAULT” …" 1>&2
