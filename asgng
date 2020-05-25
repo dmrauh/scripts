@@ -1,5 +1,5 @@
 #! /usr/bin/env nix-shell
-#! nix-shell -i python -p "python3.withPackages (ps: [ps.click])"
+#! nix-shell -i python -p "python3.withPackages (ps: [ ps.click ])"
 
 import random as rnd
 import click as cl
