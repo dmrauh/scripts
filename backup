@@ -1,4 +1,5 @@
 #!/usr/bin/env fish
+# Author: David Pätzel
 
 
 function bupit
@@ -15,6 +16,7 @@ function bupit
         and bup fsck -g
     else
         echo "Not available: $dir"
+        exit 1
     end
 end
 

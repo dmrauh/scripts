@@ -1,6 +1,7 @@
 #!/usr/bin/env fish
 #
 # Required: curl, pdftotext (from poppler-utils), cat, grep, sed
+# Author: David Pätzel
 
 
 if test "X$argv" = "X--help" -o "X$argv" = "X-h"
