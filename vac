@@ -1,56 +1,109 @@
 #! /usr/bin/env nix-shell
-#! nix-shell -i python -p python37
+#! nix-shell -i python -p "python3.withPackages (ps: [ ps.click ])"
 
-import datetime
+import datetime as dt
+import typing as ty
+import click as cl
+import math as mt
 import os
 import re
 
+FILE_REGEX: str = '_([1-9]+)Tag'
+CURRENT_YEAR: int = dt.datetime.now().year
+MONTHS_OF_YEAR: int = 12
 
-def extract_days(file):
-    m = re.search(FILE_REGEX, file)
+
+def extract_days(file: str) -> int:
+    m: ty.Optional[ty.Match[ty.Any]] = re.search(FILE_REGEX, file)
     if m:
         return int(m.group(1))
     else:
         return 0
 
 
-def extract_vacation_per_year(year, vacation_dir):
-    year_dir = os.path.join(vacation_dir, year)
-    vacation_files = [
+def extract_vacation_per_year(year: str, vacation_dir: str) -> int:
+    year_dir: str = os.path.join(vacation_dir, year)
+    vacation_files: ty.List[str] = [
         f for f in os.listdir(year_dir)
         if os.path.isfile(os.path.join(year_dir, f))
     ]
-    days = 0
+    days: int = 0
+    vacation_file: str
     for vacation_file in vacation_files:
         days += extract_days(vacation_file)
     return days
 
 
-VACATION_DIR = '.'
-FILE_REGEX = '_([0-9]+[0-9]*)Tag'
-EMPLOYMENT_START = 2016
-START_MALUS = 17
-VACATION_PER_YEAR = 30
-CURRENT_YEAR = datetime.datetime.now().year
+def extract_taken_vacation(directory: str) -> int:
+    years: ty.List[str] = [
+        d for d in os.listdir(directory)
+        if os.path.isdir(os.path.join(directory, d))
+    ]
 
-years = [
-    d for d in os.listdir(VACATION_DIR)
-    if os.path.isdir(os.path.join(VACATION_DIR, d))
-]
+    taken_vacation: int = 0
+    year: str
+    for year in years:
+        taken_vacation += extract_vacation_per_year(year, directory)
 
-taken_vacation = 0
-for year in years:
-    taken_vacation += extract_vacation_per_year(year, VACATION_DIR)
+    return taken_vacation
 
-guaranteed_vacation = (CURRENT_YEAR - EMPLOYMENT_START + 1) * VACATION_PER_YEAR
-guaranteed_vacation -= START_MALUS
-remaining_vacation = guaranteed_vacation - taken_vacation
 
-day_literal = 'day'
-is_literal = 'is'
-if remaining_vacation > 1:
-    day_literal += 's'
-    is_literal = 'are'
+def calculate_assured_vacation(start_year: int, end_year: int,
+                               start_month: int, end_month: int,
+                               vacation_per_year: int) -> int:
 
-print(f'{remaining_vacation} {day_literal} of vacation {is_literal} left.')
+    vacation_per_month: float = vacation_per_year / MONTHS_OF_YEAR
+    start_malus: int = mt.ceil(
+        (MONTHS_OF_YEAR - start_month + 1) * vacation_per_month)
 
+    years_employed: int = CURRENT_YEAR - start_year
+    assured_vacation: int = (years_employed + 1) * vacation_per_year
+    assured_vacation -= start_malus
+
+    if CURRENT_YEAR == end_year:
+        end_malus: int = mt.floor(
+            (MONTHS_OF_YEAR - end_month) * vacation_per_month)
+        assured_vacation -= end_malus
+
+    return assured_vacation
+
+
+def print_remaining_vacation(remaining_vacation: int) -> None:
+    day_literal: str
+    is_literal: str
+
+    if remaining_vacation == 1:
+        day_literal = "day"
+        is_literal = "is"
+    else:
+        day_literal = 'days'
+        is_literal = 'are'
+
+    cl.echo(
+        f'{remaining_vacation} {day_literal} of vacation {is_literal} left.')
+
+
+@cl.command()
+@cl.argument("directory", type=cl.Path(exists=True), required=True, nargs=1)
+@cl.option("--start-year", type=int, required=True)
+@cl.option("--end-year", type=int, default=-1)
+@cl.option("--start-month", type=int, required=True)
+@cl.option("--end-month", type=int, default=-1)
+@cl.option("--vacation-per-year", type=int, default=30, show_default=True)
+@cl.version_option("1.0.0")
+def main(directory: str, start_year: int, end_year: int, start_month: int,
+         end_month: int, vacation_per_year: int) -> None:
+
+    taken_vacation: int = extract_taken_vacation(directory)
+
+    assured_vacation: int = calculate_assured_vacation(start_year, end_year,
+                                                       start_month, end_month,
+                                                       vacation_per_year)
+
+    remaining_vacation: int = assured_vacation - taken_vacation
+
+    print_remaining_vacation(remaining_vacation)
+
+
+if __name__ == '__main__':
+    main()
