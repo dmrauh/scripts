@@ -53,10 +53,10 @@ def calculate_assured_vacation(start_year: int, end_year: int,
                                vacation_per_year: int) -> int:
 
     vacation_per_month: float = vacation_per_year / MONTHS_OF_YEAR
-    start_malus: int = mt.ceil(
-        (MONTHS_OF_YEAR - start_month + 1) * vacation_per_month)
+    start_malus: int = mt.floor((start_month - 1) * vacation_per_month)
 
     years_employed: int = CURRENT_YEAR - start_year
+
     assured_vacation: int = (years_employed + 1) * vacation_per_year
     assured_vacation -= start_malus
 
@@ -99,7 +99,6 @@ def main(directory: str, start_year: int, end_year: int, start_month: int,
     assured_vacation: int = calculate_assured_vacation(start_year, end_year,
                                                        start_month, end_month,
                                                        vacation_per_year)
-
     remaining_vacation: int = assured_vacation - taken_vacation
 
     print_remaining_vacation(remaining_vacation)
