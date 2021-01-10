@@ -1,0 +1,233 @@
+#! /usr/bin/env bash
+
+# enable debug output
+[[ "${TRACE}" == "y" ]] && set -o xtrace
+# abort on nonzero exit status
+set -o errexit
+# abort on unbound variable
+set -o nounset
+# don't hide errors within pipes
+set -o pipefail
+# enable recursive globbing
+shopt -s globstar
+
+INVALID_CHARS="${INVALID_CHARS:-:?}"
+VBR_QUALITY="${VBR_QUALITY:-2}"
+
+_currently_transcoded_file=""
+
+_help() {
+    printf "Usage: musicsync [OPTION … ] SOURCE SINK\n"
+    printf "\n"
+    printf "  -?, --help\tgive this help list\n"
+    printf "  -V, --version\tprint program version\n"
+}
+
+_version() {
+    printf "musicsync 1.0.0\n"
+}
+
+_error() {
+    local -r _red="$(tput setaf 1)"
+    local -r _reset="$(tput sgr0)"
+    printf "${_red}%s${_reset}\\n" "${*}" 1>&2
+}
+
+_get_transcoded_file() {
+    local -r _in_music_file="${1}"
+
+    local _transcoded_file
+    _transcoded_file=/tmp/"$(basename "${_in_music_file}")"
+    _transcoded_file="${_transcoded_file[*]/%flac/mp3}"
+
+    echo "${_transcoded_file}"
+}
+
+_transcode() {
+    local -r _in_music_file="${1}"
+    local -r _in_music_file_transcoded="$(_get_transcoded_file "${_in_music_file}")"
+
+    _currently_transcoded_file="${_in_music_file_transcoded}"
+    ffmpeg -loglevel warning -y \
+        -i "${_in_music_file}" \
+        -disposition:v attached_pic \
+        -vsync 0 \
+        -qscale:a "${VBR_QUALITY}" \
+        -- "${_in_music_file_transcoded}" \
+        2>&1 >/dev/null | gawk '{if ($0 != "") {print "ffmpeg: ", $0}}'
+    }
+
+_get_out_music_file() {
+    local -r _in_music_file="${1}"
+    local -r _out_dir_album="${2}"
+
+    local -r _in_music_file_name="$(basename "${_in_music_file}")"
+
+    local _out_music_file_name
+    _out_music_file_name="${_in_music_file_name//["${INVALID_CHARS}"]/_}"
+    _out_music_file_name="${_out_music_file_name[*]/%flac/mp3}"
+
+    local -r _out_music_file="${_out_dir_album}${_out_music_file_name}"
+
+    echo "${_out_music_file}"
+}
+
+_sync_file() {
+    local -r _in_music_file="${1}"
+    local -r _out_dir_album="${2}"
+
+    printf "Syncing: %s\n" "${_in_music_file}"
+    cp -- "${_in_music_file}" "${_out_dir_album}"
+}
+
+_sync_transcoded_file() {
+    local -r _in_music_file="${1}"
+    local -r _out_dir_album="${2}"
+
+    local -r _in_music_file_transcoded="$(_get_transcoded_file "${_in_music_file}")"
+    printf "Syncing: %s\n" "${_in_music_file_transcoded}"
+    mv -- "${_in_music_file_transcoded}" "${_out_dir_album}"
+    _currently_transcoded_file=""
+}
+
+_transcode_file() {
+    local -r _in_music_file="${1}"
+
+    printf "Transcoding: %s\n" "${_in_music_file}"
+    _transcode "${_in_music_file}"
+}
+
+_sync_dir() {
+    local -r _in_dir_album="${1}"
+    local -r _out_dir_album="${2}"
+
+    for _in_music_file in "${_in_dir_album}"*.{mp3,flac}
+    do
+        [ -e "${_in_music_file}" ] || continue
+
+        local _out_music_file
+        _out_music_file="$(_get_out_music_file \
+            "${_in_music_file}" "${_out_dir_album}")"
+
+        [ ! -e "${_out_music_file}" ] || continue
+
+        local _in_music_file_extension="${_in_music_file##*.}"
+        if [ ! "${_in_music_file_extension}" = "mp3" ]
+        then
+            _transcode_file "${_in_music_file}"
+            _sync_transcoded_file "${_in_music_file}" "${_out_dir_album}"
+        else
+            _sync_file "${_in_music_file}" "${_out_dir_album}"
+        fi
+
+    done
+}
+
+_check_dir_exists() {
+    if [ ! -d "${1}" ]
+    then
+        _error "\"${1}\" does not exist or is not a directory!"
+        return 1
+    fi
+}
+
+_check_preconditions() {
+    _check_dir_exists "${1}"
+    _check_dir_exists "${2}"
+}
+
+_remove_trailing_slashes() {
+    shopt -s extglob
+
+    local -r _trimmed="${1%%+(/)}"
+
+    shopt -u extglob
+
+    echo "${_trimmed}"
+}
+
+_get_out_dir_album() {
+    local -r _in_dir="${1}"
+    local -r _in_dir_album="${2}"
+
+    local _album_name="${_in_dir_album#"${_in_dir}"/}"
+    _album_name="${_album_name//["${INVALID_CHARS}"]/_}"
+    local _out_dir_album="${_out_dir}"/"${_album_name}"
+    echo "${_out_dir_album}"
+}
+
+_create_out_dir_album_if_non_existent() {
+    local -r _out_dir_album="${1}"
+
+    if [ ! -d "${_out_dir_album}" ]
+    then
+        mkdir -p -- "${_out_dir_album}"
+    fi
+}
+
+_remove_directory_if_empty() {
+    local -r _directory="${1}"
+
+    if [ -z "$(ls -A "${_directory}")" ]
+    then
+        rmdir -- "${_directory}"
+    fi
+}
+
+_cleanup() {
+    local -r _currently_transcoded_filename="$(basename "${_currently_transcoded_file}")"
+    mv -- "${_currently_transcoded_file}" "${HOME}"/"${_currently_transcoded_filename}"
+    trap - SIGTERM && kill -- -$$
+}
+
+_get_options() {
+[[ "$#" -eq 0 ]] && _help && exit 1
+
+while true; do
+    case "$1" in
+        -\?|--help)
+            _help
+            exit
+            ;;
+        -V|--version)
+            _version
+            exit
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -?*)
+            _error "ERROR: Unknown option: $1"
+            _help
+            exit 1
+            ;;
+        *)
+            break
+    esac
+
+    shift
+done
+}
+
+main() {
+    _get_options "$@"
+    _check_preconditions "${1}" "${2}"
+
+    local -r _in_dir="$(_remove_trailing_slashes "${1}")"
+    local -r _out_dir="$(_remove_trailing_slashes "${2}")"
+
+    for _in_dir_album in "${_in_dir}"/*/**/
+    do
+        local _out_dir_album
+        _out_dir_album="$(_get_out_dir_album "${_in_dir}" "${_in_dir_album}")"
+
+        _create_out_dir_album_if_non_existent "${_out_dir_album}"
+        _sync_dir "${_in_dir_album}" "${_out_dir_album}"
+        _remove_directory_if_empty "${_out_dir_album}"
+    done
+}
+
+trap _cleanup INT TERM HUP QUIT
+main "${@}" &
+wait $!
