@@ -14,27 +14,57 @@ shopt -s globstar
 INVALID_CHARS="${INVALID_CHARS:-:?}"
 VBR_QUALITY="${VBR_QUALITY:-2}"
 
+readonly _version="1.0.0"
+readonly _name="$(basename "${BASH_SOURCE[0]}")"
+readonly _require=("ffmpeg" "column" "awk" "xargs")
+
 _currently_transcoded_file=""
 
 _help() {
-    printf "Usage: musicsync [OPTION … ] SOURCE SINK\n"
+    printf "%s %s %s\n" "Usage:" "${_name}" "[OPTION … ] SOURCE SINK"
     printf "\n"
-    printf "  -?, --help\tgive this help list\n"
-    printf "  -V, --version\tprint program version\n"
+    printf "%s\n" \
+        "|-h, --help|give this help list" \
+        "|-V, --version|print program version" \
+        | column -t -s "|"
+}
+
+_is_available() {
+    local -r _dependency="$1"
+
+    command -v "${_dependency}" >/dev/null 2>&1 || {
+        return 1
+    }
+}
+
+_are_available() {
+    local -r _dependencies=("$@")
+    local _missing_dependencies=()
+
+    for _dependency in "${_dependencies[@]}"; do
+        _is_available "${_dependency}" || {
+            _missing_dependencies+=("${_dependency}")
+        }
+    done
+
+    if [[ "${#_missing_dependencies[@]}" -ge 1 ]]; then
+        _error "Missing dependencies:" "${_missing_dependencies[@]}"
+        return 1
+    fi
 }
 
 _version() {
-    printf "musicsync 1.0.0\n"
+    printf "%s %s\n" "${_name}" "${_version}"
 }
 
 _error() {
     local -r _red="$(tput setaf 1)"
     local -r _reset="$(tput sgr0)"
-    printf "${_red}%s${_reset}\\n" "${*}" 1>&2
+    printf "${_red}%s${_reset}\\n" "$*" 1>&2
 }
 
 _get_transcoded_file() {
-    local -r _in_music_file="${1}"
+    local -r _in_music_file="$1"
 
     local _transcoded_file
     _transcoded_file=/tmp/"$(basename "${_in_music_file}")"
@@ -43,8 +73,9 @@ _get_transcoded_file() {
     echo "${_transcoded_file}"
 }
 
+export -f _error
 _transcode() {
-    local -r _in_music_file="${1}"
+    local -r _in_music_file="$1"
     local -r _in_music_file_transcoded="$(_get_transcoded_file "${_in_music_file}")"
 
     _currently_transcoded_file="${_in_music_file_transcoded}"
@@ -54,12 +85,14 @@ _transcode() {
         -vsync 0 \
         -qscale:a "${VBR_QUALITY}" \
         -- "${_in_music_file_transcoded}" \
-        2>&1 >/dev/null | gawk '{if ($0 != "") {print "ffmpeg: ", $0}}'
+        2>&1 >/dev/null \
+        | awk '{print "ffmpeg:", $0}' \
+        | xargs -I {} bash -c '_error "$@"' _ {}
     }
 
 _get_out_music_file() {
-    local -r _in_music_file="${1}"
-    local -r _out_dir_album="${2}"
+    local -r _in_music_file="$1"
+    local -r _out_dir_album="$2"
 
     local -r _in_music_file_name="$(basename "${_in_music_file}")"
 
@@ -73,16 +106,16 @@ _get_out_music_file() {
 }
 
 _sync_file() {
-    local -r _in_music_file="${1}"
-    local -r _out_dir_album="${2}"
+    local -r _in_music_file="$1"
+    local -r _out_dir_album="$2"
 
     printf "Syncing: %s\n" "${_in_music_file}"
     cp -- "${_in_music_file}" "${_out_dir_album}"
 }
 
 _sync_transcoded_file() {
-    local -r _in_music_file="${1}"
-    local -r _out_dir_album="${2}"
+    local -r _in_music_file="$1"
+    local -r _out_dir_album="$2"
 
     local -r _in_music_file_transcoded="$(_get_transcoded_file "${_in_music_file}")"
     printf "Syncing: %s\n" "${_in_music_file_transcoded}"
@@ -91,15 +124,15 @@ _sync_transcoded_file() {
 }
 
 _transcode_file() {
-    local -r _in_music_file="${1}"
+    local -r _in_music_file="$1"
 
     printf "Transcoding: %s\n" "${_in_music_file}"
     _transcode "${_in_music_file}"
 }
 
 _sync_dir() {
-    local -r _in_dir_album="${1}"
-    local -r _out_dir_album="${2}"
+    local -r _in_dir_album="$1"
+    local -r _out_dir_album="$2"
 
     for _in_music_file in "${_in_dir_album}"*.{mp3,flac}
     do
@@ -124,16 +157,17 @@ _sync_dir() {
 }
 
 _check_dir_exists() {
-    if [ ! -d "${1}" ]
+    if [ ! -d "$1" ]
     then
-        _error "\"${1}\" does not exist or is not a directory!"
+        _error "\"$1\" does not exist or is not a directory!"
         return 1
     fi
 }
 
 _check_preconditions() {
-    _check_dir_exists "${1}"
-    _check_dir_exists "${2}"
+    _are_available "${_require[@]}"
+    _check_dir_exists "$1"
+    _check_dir_exists "$2"
 }
 
 _remove_trailing_slashes() {
@@ -147,8 +181,8 @@ _remove_trailing_slashes() {
 }
 
 _get_out_dir_album() {
-    local -r _in_dir="${1}"
-    local -r _in_dir_album="${2}"
+    local -r _in_dir="$1"
+    local -r _in_dir_album="$2"
 
     local _album_name="${_in_dir_album#"${_in_dir}"/}"
     _album_name="${_album_name//["${INVALID_CHARS}"]/_}"
@@ -157,7 +191,7 @@ _get_out_dir_album() {
 }
 
 _create_out_dir_album_if_non_existent() {
-    local -r _out_dir_album="${1}"
+    local -r _out_dir_album="$1"
 
     if [ ! -d "${_out_dir_album}" ]
     then
@@ -166,7 +200,7 @@ _create_out_dir_album_if_non_existent() {
 }
 
 _remove_directory_if_empty() {
-    local -r _directory="${1}"
+    local -r _directory="$1"
 
     if [ -z "$(ls -A "${_directory}")" ]
     then
@@ -177,7 +211,7 @@ _remove_directory_if_empty() {
 _cleanup() {
     local -r _currently_transcoded_filename="$(basename "${_currently_transcoded_file}")"
     mv -- "${_currently_transcoded_file}" "${HOME}"/"${_currently_transcoded_filename}"
-    trap - SIGTERM && kill -- -$$
+    trap - SIGTERM && kill -- -"$$"
 }
 
 _get_options() {
@@ -185,7 +219,7 @@ _get_options() {
 
 while true; do
     case "$1" in
-        -\?|--help)
+        -\h|--help)
             _help
             exit
             ;;
@@ -198,7 +232,7 @@ while true; do
             break
             ;;
         -?*)
-            _error "ERROR: Unknown option: $1"
+            _error "ERROR: Unknown option: "$1""
             _help
             exit 1
             ;;
@@ -212,7 +246,7 @@ done
 
 main() {
     _get_options "$@"
-    _check_preconditions "${1}" "${2}"
+    _check_preconditions "$1" "$2"
 
     local -r _in_dir="$(_remove_trailing_slashes "${1}")"
     local -r _out_dir="$(_remove_trailing_slashes "${2}")"
@@ -229,5 +263,5 @@ main() {
 }
 
 trap _cleanup INT TERM HUP QUIT
-main "${@}" &
+main "$@" &
 wait $!
