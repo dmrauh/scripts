@@ -16,7 +16,7 @@ VBR_QUALITY="${VBR_QUALITY:-2}"
 
 readonly _version="1.0.0"
 readonly _name="$(basename "${BASH_SOURCE[0]}")"
-readonly _require=("ffmpeg" "column" "awk" "xargs")
+readonly _require=("ffmpeg" "column" "awk" "xargs" "tput")
 
 _currently_transcoded_file=""
 
@@ -31,10 +31,7 @@ _help() {
 
 _is_available() {
     local -r _dependency="$1"
-
-    command -v "${_dependency}" >/dev/null 2>&1 || {
-        return 1
-    }
+    command -v "${_dependency}" >/dev/null 2>&1 || return 1
 }
 
 _are_available() {
@@ -42,9 +39,7 @@ _are_available() {
     local _missing_dependencies=()
 
     for _dependency in "${_dependencies[@]}"; do
-        _is_available "${_dependency}" || {
-            _missing_dependencies+=("${_dependency}")
-        }
+        _is_available "${_dependency}" || _missing_dependencies+=("${_dependency}")
     done
 
     if [[ "${#_missing_dependencies[@]}" -ge 1 ]]; then
@@ -134,8 +129,7 @@ _sync_dir() {
     local -r _in_dir_album="$1"
     local -r _out_dir_album="$2"
 
-    for _in_music_file in "${_in_dir_album}"*.{mp3,flac}
-    do
+    for _in_music_file in "${_in_dir_album}"*.{mp3,flac}; do
         [ -e "${_in_music_file}" ] || continue
 
         local _out_music_file
@@ -145,8 +139,7 @@ _sync_dir() {
         [ ! -e "${_out_music_file}" ] || continue
 
         local _in_music_file_extension="${_in_music_file##*.}"
-        if [ ! "${_in_music_file_extension}" = "mp3" ]
-        then
+        if [ ! "${_in_music_file_extension}" = "mp3" ]; then
             _transcode_file "${_in_music_file}"
             _sync_transcoded_file "${_in_music_file}" "${_out_dir_album}"
         else
@@ -157,8 +150,7 @@ _sync_dir() {
 }
 
 _check_dir_exists() {
-    if [ ! -d "$1" ]
-    then
+    if [ ! -d "$1" ]; then
         _error "\"$1\" does not exist or is not a directory!"
         return 1
     fi
@@ -193,8 +185,7 @@ _get_out_dir_album() {
 _create_out_dir_album_if_non_existent() {
     local -r _out_dir_album="$1"
 
-    if [ ! -d "${_out_dir_album}" ]
-    then
+    if [ ! -d "${_out_dir_album}" ]; then
         mkdir -p -- "${_out_dir_album}"
     fi
 }
@@ -202,8 +193,7 @@ _create_out_dir_album_if_non_existent() {
 _remove_directory_if_empty() {
     local -r _directory="$1"
 
-    if [ -z "$(ls -A "${_directory}")" ]
-    then
+    if [ -z "$(ls -A "${_directory}")" ]; then
         rmdir -- "${_directory}"
     fi
 }
@@ -211,28 +201,29 @@ _remove_directory_if_empty() {
 _cleanup() {
     local -r _currently_transcoded_filename="$(basename "${_currently_transcoded_file}")"
     mv -- "${_currently_transcoded_file}" "${HOME}"/"${_currently_transcoded_filename}"
-    trap - SIGTERM && kill -- -"$$"
+    trap - TERM && kill -- -"$$"
 }
 
 _get_options() {
 [[ "$#" -eq 0 ]] && _help && exit 1
+[[ "$#" -eq 1 && "$1" == "--" ]] && _help && exit 1
 
 while true; do
     case "$1" in
-        -\h|--help)
+        -h|--help)
             _help
-            exit
+            exit 0
             ;;
         -V|--version)
             _version
-            exit
+            exit 0
             ;;
         --)
             shift
             break
             ;;
         -?*)
-            _error "ERROR: Unknown option: "$1""
+            _error "ERROR: Unknown option: $1"
             _help
             exit 1
             ;;
@@ -248,11 +239,10 @@ main() {
     _get_options "$@"
     _check_preconditions "$1" "$2"
 
-    local -r _in_dir="$(_remove_trailing_slashes "${1}")"
-    local -r _out_dir="$(_remove_trailing_slashes "${2}")"
+    local -r _in_dir="$(_remove_trailing_slashes "$1")"
+    local -r _out_dir="$(_remove_trailing_slashes "$2")"
 
-    for _in_dir_album in "${_in_dir}"/*/**/
-    do
+    for _in_dir_album in "${_in_dir}"/*/**/; do
         local _out_dir_album
         _out_dir_album="$(_get_out_dir_album "${_in_dir}" "${_in_dir_album}")"
 
@@ -264,4 +254,4 @@ main() {
 
 trap _cleanup INT TERM HUP QUIT
 main "$@" &
-wait $!
+wait "$!"
